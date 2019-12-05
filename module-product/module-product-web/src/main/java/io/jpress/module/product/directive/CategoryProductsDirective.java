@@ -19,44 +19,64 @@ import com.jfinal.aop.Inject;
 import com.jfinal.template.Env;
 import com.jfinal.template.io.Writer;
 import com.jfinal.template.stat.Scope;
+import io.jboot.utils.StrUtil;
 import io.jboot.web.directive.annotation.JFinalDirective;
 import io.jboot.web.directive.base.JbootDirectiveBase;
+import io.jpress.module.product.model.Product;
 import io.jpress.module.product.model.ProductCategory;
 import io.jpress.module.product.service.ProductCategoryService;
+import io.jpress.module.product.service.ProductService;
 
 import java.util.List;
-
 
 /**
  * @author Michael Yang 杨福海 （fuhai999@gmail.com）
  * @version V1.0
- * @Title: 产品分类：分类、专题、标签等
+ * @Package io.jpress.module.page.directive
  */
-@JFinalDirective("productCategories")
-public class ProductCategoriesDirective extends JbootDirectiveBase {
+@JFinalDirective("categoryProducts")
+public class CategoryProductsDirective extends JbootDirectiveBase {
+
+    @Inject
+    private ProductService service;
 
     @Inject
     private ProductCategoryService categoryService;
 
+
     @Override
     public void onRender(Env env, Scope scope, Writer writer) {
 
-        Long id = getParaToLong(0, scope);
-        String type = getPara(1, scope);
+        Long categoryId = getParaToLong("categoryId", scope);
+        String flag = getPara("categoryFlag", scope);
 
-        if (id == null || type == null) {
-            throw new IllegalArgumentException("#productCategories() args error. id or type must not be null." + getLocation());
+        if (StrUtil.isBlank(flag) && categoryId == null) {
+            throw new IllegalArgumentException("#categoryArticles(categoryProducts=xxx，categoryId=xxx) is error, " +
+                    "categoryFlag or categoryId must not be empty. " + getLocation());
         }
 
+        Boolean hasThumbnail = getParaToBool("hasThumbnail", scope);
+        String orderBy = getPara("orderBy", scope, "order_number desc,id desc");
+        int count = getParaToInt("count", scope, 10);
 
-        List<ProductCategory> categories = categoryService.findListByProductId(id, type);
-        if (categories == null || categories.isEmpty()) {
+        ProductCategory category = categoryId != null
+                ? categoryService.findById(categoryId)
+                : categoryService.findFirstByFlag(flag);
+        if (category == null) {
             return;
         }
 
-        scope.setLocal("categories", categories);
+        scope.setLocal("category", category);
+
+        List<Product> products = service.findListByCategoryId(category.getId(), hasThumbnail, orderBy, count);
+        if (products == null || products.isEmpty()) {
+            return;
+        }
+
+        scope.setLocal("products", products);
         renderBody(env, scope, writer);
     }
+
 
     @Override
     public boolean hasEnd() {

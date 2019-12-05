@@ -19,42 +19,33 @@ import com.jfinal.aop.Inject;
 import com.jfinal.template.Env;
 import com.jfinal.template.io.Writer;
 import com.jfinal.template.stat.Scope;
+import io.jboot.web.controller.JbootControllerContext;
 import io.jboot.web.directive.annotation.JFinalDirective;
 import io.jboot.web.directive.base.JbootDirectiveBase;
-import io.jpress.module.product.model.ProductCategory;
-import io.jpress.module.product.service.ProductCategoryService;
-
-import java.util.List;
+import io.jpress.module.product.model.Product;
+import io.jpress.module.product.service.ProductService;
 
 
 /**
  * @author Michael Yang 杨福海 （fuhai999@gmail.com）
  * @version V1.0
- * @Title: 产品分类：分类、专题、标签等
  */
-@JFinalDirective("productCategories")
-public class ProductCategoriesDirective extends JbootDirectiveBase {
+@JFinalDirective("nextProduct")
+public class NextProductDirective extends JbootDirectiveBase {
 
     @Inject
-    private ProductCategoryService categoryService;
+    private ProductService service;
 
     @Override
     public void onRender(Env env, Scope scope, Writer writer) {
+        Product product = JbootControllerContext.get().getAttr("product");
 
-        Long id = getParaToLong(0, scope);
-        String type = getPara(1, scope);
-
-        if (id == null || type == null) {
-            throw new IllegalArgumentException("#productCategories() args error. id or type must not be null." + getLocation());
-        }
-
-
-        List<ProductCategory> categories = categoryService.findListByProductId(id, type);
-        if (categories == null || categories.isEmpty()) {
+        Product nextProduct = service.findNextById(product.getId());
+        if (nextProduct == null) {
             return;
         }
 
-        scope.setLocal("categories", categories);
+        scope.setLocal("next", nextProduct);
         renderBody(env, scope, writer);
     }
 

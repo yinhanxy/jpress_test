@@ -1,5 +1,20 @@
 #@ucenter_layout()
 
+#define script()
+<script>
+
+    $(document).ready(function () {
+        $("[name='paytype']:first").attr("checked", "checked");
+    });
+
+    function ok(data) {
+        window.open(data.gotoUrl,"_blank");
+    }
+
+</script>
+#end
+
+
 #define content()
 <div class="content-wrapper">
 
@@ -22,7 +37,11 @@
                     </div>
                     <!-- /.box-header -->
                     <!-- form start -->
-                    <form class="form-horizontal" autocomplete="off" action="#(CPATH)/ucenter/finance/amount/recharging" method="post" target="_blank">
+                    <form class="form-horizontal autoAjaxSubmit" autocomplete="off"
+                          action="#(CPATH)/ucenter/finance/amount/recharging"
+                          method="post"
+                          data-ok-function="ok"
+                    >
                         <div class="box-body ">
 
                             <div class="form-group">
@@ -54,7 +73,7 @@
                                     #if(wechatxConfig.isEnable())
                                     <div class="radio">
                                         <label>
-                                            <input type="radio" name="paytype" value="wechatx" checked>
+                                            <input type="radio" name="paytype" value="wechatx">
                                             微信转账支付
                                         </label>
                                     </div>

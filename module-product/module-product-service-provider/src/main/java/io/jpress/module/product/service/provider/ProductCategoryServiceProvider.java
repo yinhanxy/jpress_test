@@ -1,17 +1,19 @@
 package io.jpress.module.product.service.provider;
 
 import com.jfinal.plugin.activerecord.Db;
+import com.jfinal.plugin.activerecord.Model;
 import com.jfinal.plugin.activerecord.Page;
 import com.jfinal.plugin.activerecord.Record;
 import io.jboot.aop.annotation.Bean;
 import io.jboot.components.cache.AopCache;
+import io.jboot.components.cache.CacheTime;
 import io.jboot.components.cache.annotation.CacheEvict;
 import io.jboot.components.cache.annotation.Cacheable;
+import io.jboot.components.cache.annotation.CachesEvict;
 import io.jboot.db.model.Column;
 import io.jboot.db.model.Columns;
 import io.jboot.service.JbootServiceBase;
 import io.jboot.utils.StrUtil;
-import io.jpress.commons.Copyer;
 import io.jpress.module.product.model.ProductCategory;
 import io.jpress.module.product.service.ProductCategoryService;
 import org.apache.commons.lang3.ArrayUtils;
@@ -30,8 +32,14 @@ public class ProductCategoryServiceProvider extends JbootServiceBase<ProductCate
         return DAO.paginateByColumn(page, pagesize, Column.create("type", type), "order_number asc,id desc");
     }
 
+    /**
+     * 文章在更新的时候，需要清除这个缓存
+     *
+     * @param productId
+     * @return
+     */
     @Override
-    @Cacheable(name = "productCategory")
+    @Cacheable(name = "product-category", key = "#(productId)", liveSeconds = 2 * CacheTime.HOUR, nullCacheEnable = true)
     public List<ProductCategory> findListByProductId(long productId) {
         List<Record> mappings = Db.find("select * from product_category_mapping where product_id = ?", productId);
         if (mappings == null || mappings.isEmpty()) {
@@ -68,12 +76,14 @@ public class ProductCategoryServiceProvider extends JbootServiceBase<ProductCate
     }
 
     @Override
+    @Cacheable(name = "productCategory", key = "type:#(type)", returnCopyEnable = true)
     public List<ProductCategory> _findListByType(String type) {
-        return Copyer.copy(findListByTypeInDb(type));
+        return DAO.findListByColumns(Columns.create("type", type), "order_number asc,id desc");
     }
 
     @Override
-    public List<ProductCategory> findListByType(String type,String orderBy, Integer count) {
+    @Cacheable(name = "productCategory")
+    public List<ProductCategory> findListByType(String type, String orderBy, Integer count) {
         return DAO.findListByColumns(Columns.create("type", type), StrUtil.isNotBlank(orderBy) ? orderBy : "id desc", count);
     }
 
@@ -115,18 +125,13 @@ public class ProductCategoryServiceProvider extends JbootServiceBase<ProductCate
             productCategories.add(productCategory);
         }
 
-        if (needClearCache){
+        if (needClearCache) {
             AopCache.removeAll("productCategory");
         }
 
         return productCategories;
     }
 
-
-    @Cacheable(name = "productCategory", key = "type:#(type)")
-    public List<ProductCategory> findListByTypeInDb(String type) {
-        return DAO.findListByColumns(Columns.create("type", type), "order_number asc,id desc");
-    }
 
     @Override
     public ProductCategory findFirstByTypeAndSlug(String type, String slug) {
@@ -160,8 +165,11 @@ public class ProductCategoryServiceProvider extends JbootServiceBase<ProductCate
 
 
     @Override
-    @CacheEvict(name = "productCategory", key = "*")
-    public void shouldUpdateCache(int action, Object data) {
-        super.shouldUpdateCache(action, data);
+    @CachesEvict({
+            @CacheEvict(name = "productCategory", key = "*"),
+            @CacheEvict(name = "product-category", key = "*"),
+    })
+    public void shouldUpdateCache(int action, Model model, Object id) {
+        super.shouldUpdateCache(action, model, id);
     }
 }

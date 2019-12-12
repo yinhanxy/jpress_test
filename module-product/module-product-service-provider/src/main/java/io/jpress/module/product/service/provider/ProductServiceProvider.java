@@ -2,11 +2,13 @@ package io.jpress.module.product.service.provider;
 
 import com.jfinal.aop.Inject;
 import com.jfinal.plugin.activerecord.Db;
+import com.jfinal.plugin.activerecord.Model;
 import com.jfinal.plugin.activerecord.Page;
 import com.jfinal.plugin.activerecord.Record;
 import io.jboot.aop.annotation.Bean;
 import io.jboot.components.cache.annotation.CacheEvict;
 import io.jboot.components.cache.annotation.Cacheable;
+import io.jboot.components.cache.annotation.CachesEvict;
 import io.jboot.db.model.Column;
 import io.jboot.db.model.Columns;
 import io.jboot.service.JbootServiceBase;
@@ -40,6 +42,10 @@ public class ProductServiceProvider extends JbootServiceBase<Product> implements
     private ProductCategoryService categoryService;
 
     @Override
+    @CachesEvict({
+            @CacheEvict(name = "products", key = "*"),
+            @CacheEvict(name = "product-category", key = "#(productId)"),
+    })
     public void doUpdateCategorys(long productId, Long[] categoryIds) {
         Db.tx(() -> {
             Db.update("delete from product_category_mapping where product_id = ?", productId);
@@ -152,7 +158,6 @@ public class ProductServiceProvider extends JbootServiceBase<Product> implements
     }
 
 
-
     @Override
     @Cacheable(name = "products", key = "#(columns.cacheKey)-#(orderBy)-#(count)", liveSeconds = 60 * 60)
     public List<Product> findListByColumns(Columns columns, String orderBy, Integer count) {
@@ -172,11 +177,10 @@ public class ProductServiceProvider extends JbootServiceBase<Product> implements
 
     @Override
     public long findCountByStatus(int status) {
-        return DAO.findCountByColumn(Column.create("status",status));
+        return DAO.findCountByColumn(Column.create("status", status));
     }
 
     @Override
-    @CacheEvict(name = "products", key = "*")
     public boolean deleteByIds(Object... ids) {
         for (Object id : ids) {
             deleteById(id);
@@ -184,10 +188,23 @@ public class ProductServiceProvider extends JbootServiceBase<Product> implements
         return true;
     }
 
+
     @Override
-    @CacheEvict(name = "products", key = "*")
-    public void shouldUpdateCache(int action, Object data) {
-        super.shouldUpdateCache(action, data);
+    @CachesEvict({
+            @CacheEvict(name = "product-category", key = "#(id)"),
+            @CacheEvict(name = "products", key = "*")
+    })
+    public boolean deleteById(Object id) {
+        return super.deleteById(id);
+    }
+
+    @Override
+    @CachesEvict({
+            @CacheEvict(name = "products", key = "*"),
+            @CacheEvict(name = "product-category", key = "(id)", unless = "id == null"),
+    })
+    public void shouldUpdateCache(int action, Model model, Object id) {
+        super.shouldUpdateCache(action, model, id);
     }
 
     @Override
@@ -201,6 +218,7 @@ public class ProductServiceProvider extends JbootServiceBase<Product> implements
     }
 
     @Override
+    @Cacheable(name = "products", liveSeconds = 60 * 60)
     public List<Product> findRelevantListByProductId(Long productId, int status, Integer count) {
         List<ProductCategory> tags = categoryService.findListByProductId(productId, ProductCategory.TYPE_TAG);
         if (tags == null || tags.isEmpty()) {
@@ -226,24 +244,24 @@ public class ProductServiceProvider extends JbootServiceBase<Product> implements
     }
 
     @Override
-    @Cacheable(name = "products", key = "findListByCategoryId:#(categoryId)-#(hasThumbnail)-#(orderBy)-#(count)", liveSeconds = 60 * 60)
+    @Cacheable(name = "products", liveSeconds = 60 * 60)
     public List<Product> findListByCategoryId(long categoryId, Boolean hasThumbnail, String orderBy, Integer count) {
 
-        StringBuilder from = new StringBuilder("select * from article a ");
-        from.append(" left join article_category_mapping m on a.id = m.`article_id` ");
+        StringBuilder from = new StringBuilder("select * from product p ");
+        from.append(" left join product_category_mapping m on p.id = m.`product_id` ");
         from.append(" where m.category_id = ? ");
-        from.append(" and a.status = ? ");
+        from.append(" and p.status = ? ");
 
 
         if (hasThumbnail != null) {
             if (hasThumbnail == true) {
-                from.append(" and a.thumbnail is not null");
+                from.append(" and p.thumbnail is not null");
             } else {
-                from.append(" and a.thumbnail is null");
+                from.append(" and p.thumbnail is null");
             }
         }
 
-        from.append(" group by a.id ");
+        from.append(" group by p.id ");
 
         if (orderBy != null) {
             from.append(" order by " + orderBy);
@@ -255,7 +273,6 @@ public class ProductServiceProvider extends JbootServiceBase<Product> implements
 
         return joinUserInfo(DAO.find(from.toString(), categoryId, Product.STATUS_NORMAL));
     }
-
 
 
     @Override
@@ -285,8 +302,8 @@ public class ProductServiceProvider extends JbootServiceBase<Product> implements
         return list;
     }
 
-    private Product joinUserInfo(Product article) {
-        userService.join(article, "user_id");
-        return article;
+    private Product joinUserInfo(Product product) {
+        userService.join(product, "user_id");
+        return product;
     }
 }

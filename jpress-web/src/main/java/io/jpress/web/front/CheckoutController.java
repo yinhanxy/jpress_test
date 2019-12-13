@@ -234,12 +234,25 @@ public class CheckoutController extends UcenterControllerBase {
         userOrder.setProductSummary(productDesc.trim());
 
 
+        //订单金额 = 所有 item 金额之和 - 优惠券金额
+        BigDecimal orderTotalAmount = new BigDecimal(0);
+        for (UserOrderItem item : userOrderItems) {
+            orderTotalAmount = orderTotalAmount.add(item.getPayAmount());
+        }
+
+
         //设置优惠券的相关字段
         String codeStr = getPara("coupon_code");
         if (StrUtil.isNotBlank(codeStr)) {
             CouponCode couponCode = couponCodeService.findByCode(codeStr);
-            if (couponCode == null || !couponCodeService.valid(couponCode)) {
-                renderJson(Ret.fail().set("message", "优惠码不可用"));
+            if (couponCode == null) {
+                renderJson(Ret.fail().set("message", "该优惠码不存"));
+                return;
+            }
+
+            Ret ret = couponCodeService.valid(couponCode, orderTotalAmount, userOrder.getBuyerId());
+            if (ret.isFail()){
+                renderJson(ret);
                 return;
             }
 
@@ -250,12 +263,6 @@ public class CheckoutController extends UcenterControllerBase {
             userOrder.setCouponAmount(coupon.getAmount());
         }
 
-
-        //订单金额 = 所有 item 金额之和 - 优惠券金额
-        BigDecimal orderTotalAmount = new BigDecimal(0);
-        for (UserOrderItem item : userOrderItems) {
-            orderTotalAmount = orderTotalAmount.add(item.getPayAmount());
-        }
 
         if (userOrder.getCouponAmount() != null) {
             orderTotalAmount = orderTotalAmount.subtract(userOrder.getCouponAmount());
@@ -300,7 +307,6 @@ public class CheckoutController extends UcenterControllerBase {
         }
 
         renderJson(Ret.ok().set("orderId", userOrderId).set("paytype", getPara("paytype")));
-
     }
 
     @UrlParaValidate

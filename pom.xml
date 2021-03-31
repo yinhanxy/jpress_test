@@ -42,7 +42,7 @@
         <httpclient.version>4.5.3</httpclient.version>
         <fasterxml.version>2.10.1</fasterxml.version>
         <pay-java.version>2.12.9</pay-java.version>
-        <guava.version>28.1-jre</guava.version>
+        <guava.version>29.0-jre</guava.version>
         <commons-lang.version>2.6</commons-lang.version>
         <commons-logging.version>1.2</commons-logging.version>
         <commons-codec.version>1.10</commons-codec.version>

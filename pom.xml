@@ -39,7 +39,7 @@
         <commons-io.version>2.6</commons-io.version>
         <commonmark.version>0.13.1</commonmark.version>
         <aliyunoss.version>3.4.2</aliyunoss.version>
-        <httpclient.version>4.5.3</httpclient.version>
+        <httpclient.version>4.5.13</httpclient.version>
         <fasterxml.version>2.10.1</fasterxml.version>
         <pay-java.version>2.12.9</pay-java.version>
         <guava.version>28.1-jre</guava.version>
@@ -102,7 +102,7 @@
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
-                <version>4.5.10</version>
+                <version>4.5.13</version>
             </dependency>
 
             <dependency>

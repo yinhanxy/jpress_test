@@ -40,7 +40,7 @@
         <commonmark.version>0.13.1</commonmark.version>
         <aliyunoss.version>3.4.2</aliyunoss.version>
         <httpclient.version>4.5.3</httpclient.version>
-        <fasterxml.version>2.10.1</fasterxml.version>
+        <fasterxml.version>2.12.7.1</fasterxml.version>
         <pay-java.version>2.12.9</pay-java.version>
         <guava.version>28.1-jre</guava.version>
         <commons-lang.version>2.6</commons-lang.version>
